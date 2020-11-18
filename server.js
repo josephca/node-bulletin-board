@@ -1,38 +1,66 @@
-var express        = require('express'),
-    bodyParser     = require('body-parser'),
-    methodOverride = require('method-override'),
-    errorHandler   = require('errorhandler'),
-    morgan         = require('morgan'),
-    routes         = require('./backend'),
-    api            = require('./backend/api');
+const Prometheus = require('prom-client')
+const express = require('express');
+const http = require('http');
 
-var app = module.exports = express();
+Prometheus.collectDefaultMetrics();
 
-app.engine('html', require('ejs').renderFile);
-app.set('view engine', 'html');
-app.use(morgan('dev'));
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-app.use(methodOverride());
-app.use(express.static(__dirname + '/'));
-app.use('/build', express.static('public'));
+const requestHistogram = new Prometheus.Histogram({
+    name: 'http_request_duration_seconds',
+    help: 'Duration of HTTP requests in seconds',
+    labelNames: ['code', 'handler', 'method'],
+    buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5]
+})
 
-var env = process.env.NODE_ENV;
-if ('development' == env) {
-  app.use(errorHandler({
-    dumpExceptions: true,
-    showStack: true
-  }));
+const requestTimer = (req, res, next) => {
+  const path = new URL(req.url, `http://${req.hostname}`).pathname
+  const stop = requestHistogram.startTimer({
+    method: req.method,
+    handler: path
+  })
+  res.on('finish', () => {
+    stop({
+      code: res.statusCode
+    })
+  })
+  next()
 }
 
-if ('production' == app.get('env')) {
-  app.use(errorHandler());
-}
+const app = express();
+const server = http.createServer(app)
 
-app.get('/', routes.index);
-app.get('/api/events', api.events);
-app.post('/api/events', api.event);
-app.delete('/api/events/:eventId', api.event);
+// See: http://expressjs.com/en/4x/api.html#app.settings.table
+const PRODUCTION = app.get('env') === 'production';
 
-app.listen(8080);
-console.log('Magic happens on port 8080...');
+// Administrative routes are not timed or logged, but for non-admin routes, pino
+// overhead is included in timing.
+app.get('/ready', (req, res) => res.status(200).json({status:"ok"}));
+app.get('/live', (req, res) => res.status(200).json({status:"ok"}));
+app.get('/metrics', (req, res, next) => {
+  res.set('Content-Type', Prometheus.register.contentType)
+  res.end(Prometheus.register.metrics())
+})
+
+// Time routes after here.
+app.use(requestTimer);
+
+// Log routes after here.
+const pino = require('pino')({
+  level: PRODUCTION ? 'info' : 'debug',
+});
+app.use(require('pino-http')({logger: pino}));
+
+app.get('/', (req, res) => {	
+  // Use req.log (a `pino` instance) to log JSON:	
+  req.log.info({message: 'Hello from Node.js Starter Application!'});		
+  res.send('Hello from Node.js Starter Application!');	
+});	
+
+app.get('*', (req, res) => {
+  res.status(404).send("Not Found");
+});
+
+// Listen and serve.
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`App started on PORT ${PORT}`);
+});

@@ -1,20 +1,24 @@
-## Vue Events Bulletin Board
+# nodejs-starter
 
-This is the code for the Vue.js [tutorial on Scotch.io](https://scotch.io/tutorials/build-a-single-page-time-tracking-app-with-vue-js-introduction). In the tutorial we build a events bulletin board application and cover the basics of [Vue](http://vuejs.org/).
+This is a sample starter project that provides you with a basic Express app and a sample test in a `/test` sub directory. This sample project uses `Express v4.17.x` and enables health checking and application metrics out of the box. You can override or enhance the following endpoints by configuring your own health checks in your application.
 
-## Installation
+## Health checking
 
-1. Run `npm install`.
-2. Run `node server.js`.
-3. Visit [http://localhost:8080](http://localhost:8080).
+Health-checking enables the cloud platform to determine the `readiness` and `liveness` of your application.
 
-## RESTful API (contributed by Jason Lam)
+ These endpoints will be available for you to use:
 
-1. **Use Node.js & Express for backend server and router.**
-2. **RESTful requests towards the server to simulate CRUD on *events* model, instead of local hardcoded ones.**
-3. Translated into Traditional Chinese.
+- Readiness endpoint: http://localhost:3000/ready
+- Liveness endpoint: http://localhost:3000/live
 
-## RESTful API written in Go 
+## Application metrics
 
-If you would like to use a backend written in Go, [thewhitetulip](http://github.com/thewhitetulip) has written on. See [the source code](https://github.com/thewhitetulip/go-vue-events).
- 
+The [prom-client](https://www.npmjs.com/package/prom-client) module will collect a wide range of resource-centric (CPU, memory) and application-centric (HTTP request responsiveness) metrics from your application, and then expose them as multi-dimensional time-series data through an application endpoint for Prometheus to scrape and aggregate.
+
+ This endpoints will be available for you to use:
+
+- Metrics endpoint: http://localhost:3000/metrics
+
+## License
+
+This stack is licensed under the [EPL 2.0](./LICENSE) license.
