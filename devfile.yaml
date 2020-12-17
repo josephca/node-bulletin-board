@@ -2,8 +2,9 @@ schemaVersion: 2.0.0
 metadata:
   name: nodejs
   version: 1.0.0
-  alpha.build-dockerfile: "https://raw.githubusercontent.com/odo-devfiles/registry/master/devfiles/nodejs/build/Dockerfile"
-  alpha.deployment-manifest: "https://raw.githubusercontent.com/odo-devfiles/registry/master/devfiles/nodejs/deploy/deployment-manifest.yaml"
+  attributes:
+    alpha.build-context: .
+    alpha.build-dockerfile: Dockerfile
 starterProjects:
   - name: nodejs-starter
     git:
@@ -11,6 +12,15 @@ starterProjects:
         origin: "https://github.com/odo-devfiles/nodejs-ex.git"
 components:
   - name: runtime
+    attributes:
+      tool: console-import
+    container:
+      image: maysun
+      memoryLimit: 1024Mi
+      endpoints:
+        - name: http-3000
+          targetPort: 3000
+  - name: runtime2
     container:
       image: maysun
       memoryLimit: 1024Mi
@@ -22,7 +32,7 @@ components:
 commands:
   - id: install
     exec:
-      component: runtime
+      component: runtime2
       commandLine: npm install
       workingDir: /project
       group:
@@ -30,7 +40,7 @@ commands:
         isDefault: true
   - id: run
     exec:
-      component: runtime
+      component: runtime2
       commandLine: npm start
       workingDir: /project
       group:
@@ -38,7 +48,7 @@ commands:
         isDefault: true
   - id: debug
     exec:
-      component: runtime
+      component: runtime2
       commandLine: npm run debug
       workingDir: /project
       group:
@@ -46,7 +56,7 @@ commands:
         isDefault: true
   - id: test
     exec:
-      component: runtime
+      component: runtime2
       commandLine: npm test
       workingDir: /project
       group:
